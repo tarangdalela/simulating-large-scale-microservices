@@ -1,0 +1,72 @@
+{
+    "Services": {
+        "ServiceA": {
+            "ip": "0.0.0.0",
+            "port": "50051",
+            "Methods": {
+                "ProcessOrder": {
+                    "Calls": [["ServiceB.ValidatePayment"]],
+                    "LatencyDistribution": {
+                        "type": "Normal",
+                        "parameters": {
+                            "mean": 150,
+                            "stdev": 25
+                        }
+                    },
+                    "ErrorRate": {
+                        "type": "percentage",
+                        "value": 0.02
+                    }
+                },
+                "GetOrderStatus": {
+                    "Calls": [],
+                    "LatencyDistribution": {
+                        "type": "Normal",
+                        "parameters": {
+                            "mean": 250,
+                            "stdev": 50
+                        }
+                    },
+                    "ErrorRate": {
+                        "type": "percentage",
+                        "value": 0.01
+                    }
+                }
+            }
+        },
+        "ServiceB": {
+            "ip": "0.0.0.0",
+            "port": "50052",
+            "Methods": {
+                "ValidatePayment": {
+                    "Calls": [],
+                    "LatencyDistribution": {
+                        "type": "Normal",
+                        "parameters": {
+                            "mean": 80,
+                            "stdev": 10
+                        }
+                    },
+                    "ErrorRate": {
+                        "type": "percentage",
+                        "value": 0.05
+                    }
+                }
+            }
+        }
+    },
+    "Load": {
+        "EntryPoints": [
+            {
+                "Service": "ServiceA",
+                "Method": "ProcessOrder",
+                "RequestsPerSecond": 10
+            },
+            {
+                "Service": "ServiceA",
+                "Method": "GetOrderStatus",
+                "RequestsPerSecond": 25
+            }
+        ]
+    }
+}

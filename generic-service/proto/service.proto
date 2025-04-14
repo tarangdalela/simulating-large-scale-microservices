@@ -1,0 +1,13 @@
+syntax = "proto3";
+package service;
+
+service Service {
+  rpc GetData (ServiceRequest) returns (ServiceResponse);
+}
+
+message ServiceRequest {
+  string method_name = 1;
+}
+
+message ServiceResponse {
+}
