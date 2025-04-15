@@ -1,72 +1,62 @@
 {
-    "Services": {
-        "ServiceA": {
-            "ip": "0.0.0.0",
-            "port": "50051",
-            "Methods": {
-                "ProcessOrder": {
-                    "Calls": [["ServiceB.ValidatePayment"]],
-                    "LatencyDistribution": {
-                        "type": "Normal",
-                        "parameters": {
-                            "mean": 150,
-                            "stdev": 25
-                        }
-                    },
-                    "ErrorRate": {
-                        "type": "percentage",
-                        "value": 0.02
+    "service_a": {
+        "ip": "0.0.0.0",
+        "port": "50051",
+        "methods": {
+            "process_order": {
+                "calls": [["service_b.validate_payment"]],
+                "latency_distribution": {
+                    "distribution_type": "Normal",
+                    "parameters": {
+                        "mean": 150,
+                        "stdev": 25
                     }
                 },
-                "GetOrderStatus": {
-                    "Calls": [],
-                    "LatencyDistribution": {
-                        "type": "Normal",
-                        "parameters": {
-                            "mean": 250,
-                            "stdev": 50
-                        }
-                    },
-                    "ErrorRate": {
-                        "type": "percentage",
-                        "value": 0.01
+                "error_rate": {
+                    "distribution_type": "Bernoulli",
+                    "parameters": {
+                        "value": 0.02
                     }
                 }
-            }
-        },
-        "ServiceB": {
-            "ip": "0.0.0.0",
-            "port": "50052",
-            "Methods": {
-                "ValidatePayment": {
-                    "Calls": [],
-                    "LatencyDistribution": {
-                        "type": "Normal",
-                        "parameters": {
-                            "mean": 80,
-                            "stdev": 10
-                        }
-                    },
-                    "ErrorRate": {
-                        "type": "percentage",
-                        "value": 0.05
+            },
+            "get_order_status": {
+                "calls": [],
+                "latency_distribution": {
+                    "distribution_type": "Normal",
+                    "parameters": {
+                        "mean": 250,
+                        "stdev": 50
+                    }
+                },
+                "error_rate": {
+                    "distribution_type": "Bernoulli",
+                    "parameters": {
+                        "value": 0.01
                     }
                 }
             }
         }
     },
-    "Load": {
-        "EntryPoints": [
-            {
-                "Service": "ServiceA",
-                "Method": "ProcessOrder",
-                "RequestsPerSecond": 10
-            },
-            {
-                "Service": "ServiceA",
-                "Method": "GetOrderStatus",
-                "RequestsPerSecond": 25
+    "service_b": {
+        "ip": "0.0.0.0",
+        "port": "50052",
+        "methods": {
+            "validate_payment": {
+                "calls": [],
+                "latency_distribution": {
+                    "distribution_type": "Normal",
+                    "parameters": {
+                        "mean": 80,
+                        "stdev": 10
+                    }
+                },
+                "error_rate": {
+                    "distribution_type": "Bernoulli",
+                    "parameters": {
+                        "value": 0.05
+                    }
+                }
             }
-        ]
+        }
     }
 }

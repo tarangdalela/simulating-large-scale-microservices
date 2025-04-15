@@ -1,5 +1,7 @@
 use futures::future;
-use serde_json::Value as JValue;
+use rand_distr::{Bernoulli, Distribution, Normal};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use tonic::{transport::Server, Request, Response, Status};
@@ -11,9 +13,53 @@ pub mod service_stubs {
 use service_stubs::service_server::{Service, ServiceServer};
 use service_stubs::{ServiceRequest, ServiceResponse};
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize)]
+struct ServiceConfigFromJSON {
+    ip: String,
+    port: String,
+    methods: HashMap<String, MethodConfigFromJSON>,
+}
+#[derive(Serialize, Deserialize)]
+struct MethodConfigFromJSON {
+    calls: Option<Vec<Vec<String>>>,
+    latency_distribution: DistributionConfigFromJSON,
+    error_rate: DistributionConfigFromJSON,
+}
+
+#[derive(Serialize, Deserialize)]
+struct DistributionConfigFromJSON {
+    distribution_type: String,
+    parameters: HashMap<String, f64>,
+}
+
+trait DistributionSimulator<T> {
+    fn simulate(&self) -> T;
+}
+
+struct NormalDistribution {
+    distribution: rand_distr::Normal<f64>,
+}
+
+impl DistributionSimulator<f64> for NormalDistribution {
+    fn simulate(&self) -> f64 {
+        let mut rng = rand::rng();
+        self.distribution.sample(&mut rng)
+    }
+}
+
+struct BernoulliDistribution {
+    distribution: rand_distr::Bernoulli,
+}
+
+impl DistributionSimulator<bool> for BernoulliDistribution {
+    fn simulate(&self) -> bool {
+        let mut rng = rand::rng();
+        self.distribution.sample(&mut rng)
+    }
+}
+
 pub struct GenericService {
-    config: JValue,
+    config: HashMap<String, ServiceConfigFromJSON>,
     service_name: String,
 }
 
@@ -22,16 +68,16 @@ impl GenericService {
         let config_path_str =
             env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.json".to_string());
         let config_path = Path::new(&config_path_str);
-        let config: JValue = serde_json::from_str(
+        let config: HashMap<String, ServiceConfigFromJSON> = serde_json::from_str(
             &std::fs::read_to_string(config_path).expect("Failed to read config file"),
         )
         .expect("Failed to parse config file");
         let service_name = env::var("SERVICE_NAME").expect("Failed to get SERVICE_NAME");
+        config
+            .get(&service_name)
+            .expect("Own service not found in config");
         GenericService {
-            config: config
-                .get("Services")
-                .expect("JSON missing services field")
-                .clone(),
+            config,
             service_name,
         }
     }
@@ -42,20 +88,9 @@ impl GenericService {
             service_name, method_name
         );
 
-        let service_config = self
-            .config
-            .get(service_name)
-            .expect("Service not found in config");
-        let service_ip = service_config
-            .get("ip")
-            .expect("IP not found in service config")
-            .as_str()
-            .expect("Failed to convert IP to string");
-        let service_port = service_config
-            .get("port")
-            .expect("Port not found in service config")
-            .as_str()
-            .expect("Failed to convert port to string");
+        let service_config = self.config.get(service_name).expect("service not found");
+        let service_ip = service_config.ip.clone();
+        let service_port = service_config.port.clone();
 
         let service_url = format!("http://{}:{}", service_ip, service_port);
         println!("{}", service_url);
@@ -85,27 +120,27 @@ impl Service for GenericService {
         let service_config = self
             .config
             .get(&self.service_name)
-            .expect("Service not found in config");
+            .expect("Own service not found in config"); // should be unreachable
         let method_cnf = service_config
-            .get("Methods")
-            .expect("Methods not found in service config")
+            .methods
             .get(&method_name)
-            .expect("Method not found in service config");
-        let method_calls = method_cnf
-            .get("Calls")
-            .expect("Calls not found in method config");
-        for call_row in method_calls.as_array().unwrap() {
-            let mut futures = Vec::new();
-            for call in call_row.as_array().unwrap() {
-                let call = call
-                    .as_str()
-                    .expect("Failed to convert call name to string");
-                let mut call = call.split(".");
-                let service_to_call = call.next().expect("Failed to get call name");
-                let method_to_call = call.next().expect("Failed to get method name");
-                futures.push(self.call_service(service_to_call, method_to_call));
+            .expect("Method not found in config");
+        match &method_cnf.calls {
+            Some(calls) => {
+                for call_row in calls {
+                    let mut futures = Vec::new();
+                    for call in call_row {
+                        let mut call = call.split(".");
+                        let service_to_call = call.next().expect("Failed to get call name");
+                        let method_to_call = call.next().expect("Failed to get method name");
+                        futures.push(self.call_service(service_to_call, method_to_call));
+                    }
+                    future::join_all(futures).await;
+                }
             }
-            future::join_all(futures).await;
+            None => {
+                println!("No calls to make");
+            }
         }
         Ok(Response::new(ServiceResponse {}))
     }
