@@ -6,32 +6,32 @@
             "process_order": {
                 "calls": [["service_b.validate_payment"]],
                 "latency_distribution": {
-                    "distribution_type": "Normal",
+                    "distribution_type": "normal",
                     "parameters": {
                         "mean": 150,
-                        "stdev": 25
+                        "stddev": 25
                     }
                 },
                 "error_rate": {
-                    "distribution_type": "Bernoulli",
+                    "distribution_type": "bernoulli",
                     "parameters": {
-                        "value": 0.02
+                        "p": 0.0
                     }
                 }
             },
             "get_order_status": {
                 "calls": [],
                 "latency_distribution": {
-                    "distribution_type": "Normal",
+                    "distribution_type": "normal",
                     "parameters": {
                         "mean": 250,
-                        "stdev": 50
+                        "stddev": 50
                     }
                 },
                 "error_rate": {
-                    "distribution_type": "Bernoulli",
+                    "distribution_type": "bernoulli",
                     "parameters": {
-                        "value": 0.01
+                        "p": 0.5
                     }
                 }
             }
@@ -44,16 +44,16 @@
             "validate_payment": {
                 "calls": [],
                 "latency_distribution": {
-                    "distribution_type": "Normal",
+                    "distribution_type": "normal",
                     "parameters": {
                         "mean": 80,
-                        "stdev": 10
+                        "stddev": 10
                     }
                 },
                 "error_rate": {
-                    "distribution_type": "Bernoulli",
+                    "distribution_type": "bernoulli",
                     "parameters": {
-                        "value": 0.05
+                        "p": 0.5
                     }
                 }
             }

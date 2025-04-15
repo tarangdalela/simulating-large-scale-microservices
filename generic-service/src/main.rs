@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use tokio::time::sleep;
 use tonic::{transport::Server, Request, Response, Status};
 
 pub mod service_stubs {
@@ -26,13 +27,25 @@ struct MethodConfigFromJSON {
     error_rate: DistributionConfigFromJSON,
 }
 
+struct ServiceConfig {
+    ip: String,
+    port: String,
+    methods: HashMap<String, MethodConfig>,
+}
+
+struct MethodConfig {
+    calls: Option<Vec<Vec<String>>>,
+    latency_distribution: Box<dyn DistributionSimulator<f64>>,
+    error_rate: Box<dyn DistributionSimulator<bool>>,
+}
+
 #[derive(Serialize, Deserialize)]
 struct DistributionConfigFromJSON {
     distribution_type: String,
     parameters: HashMap<String, f64>,
 }
 
-trait DistributionSimulator<T> {
+trait DistributionSimulator<T>: Send + Sync {
     fn simulate(&self) -> T;
 }
 
@@ -59,8 +72,8 @@ impl DistributionSimulator<bool> for BernoulliDistribution {
 }
 
 pub struct GenericService {
-    config: HashMap<String, ServiceConfigFromJSON>,
-    service_name: String,
+    config: ServiceConfig,
+    config_json: HashMap<String, ServiceConfigFromJSON>,
 }
 
 impl GenericService {
@@ -68,29 +81,65 @@ impl GenericService {
         let config_path_str =
             env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.json".to_string());
         let config_path = Path::new(&config_path_str);
-        let config: HashMap<String, ServiceConfigFromJSON> = serde_json::from_str(
+        let config_json: HashMap<String, ServiceConfigFromJSON> = serde_json::from_str(
             &std::fs::read_to_string(config_path).expect("Failed to read config file"),
         )
         .expect("Failed to parse config file");
         let service_name = env::var("SERVICE_NAME").expect("Failed to get SERVICE_NAME");
-        config
+        config_json
             .get(&service_name)
             .expect("Own service not found in config");
+        let config = ServiceConfig {
+            ip: config_json[&service_name].ip.clone(),
+            port: config_json[&service_name].port.clone(),
+            methods: config_json[&service_name]
+                .methods
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        k.clone(),
+                        MethodConfig {
+                            calls: v.calls.clone(),
+                            latency_distribution: match v
+                                .latency_distribution
+                                .distribution_type
+                                .as_str()
+                            {
+                                "normal" => Box::new(NormalDistribution {
+                                    distribution: Normal::new(
+                                        v.latency_distribution.parameters["mean"],
+                                        v.latency_distribution.parameters["stddev"],
+                                    )
+                                    .unwrap(),
+                                }),
+                                _ => panic!("Unsupported distribution type"),
+                            },
+                            error_rate: match v.error_rate.distribution_type.as_str() {
+                                "bernoulli" => Box::new(BernoulliDistribution {
+                                    distribution: Bernoulli::new(v.error_rate.parameters["p"])
+                                        .unwrap(),
+                                }),
+                                _ => panic!("Unsupported distribution type"),
+                            },
+                        },
+                    )
+                })
+                .collect(),
+        };
         GenericService {
             config,
-            service_name,
+            config_json,
         }
     }
 
-    pub async fn call_service(&self, service_name: &str, method_name: &str) {
+    pub async fn call_service(&self, service_name: &str, method_name: &str) -> bool {
         println!(
             "Calling service: {} with method: {}",
             service_name, method_name
         );
 
-        let service_config = self.config.get(service_name).expect("service not found");
-        let service_ip = service_config.ip.clone();
-        let service_port = service_config.port.clone();
+        let service_ip = self.config_json[service_name].ip.clone();
+        let service_port = self.config_json[service_name].port.clone();
 
         let service_url = format!("http://{}:{}", service_ip, service_port);
         println!("{}", service_url);
@@ -103,8 +152,14 @@ impl GenericService {
 
         let response = client.get_data(request).await;
         match response {
-            Ok(res) => println!("Response: {:?}", res),
-            Err(e) => eprintln!("Error calling service: {:?}", e),
+            Ok(res) => {
+                println!("Response: {:?}", res);
+                true
+            }
+            Err(e) => {
+                eprintln!("Error calling service: {:?}", e);
+                false
+            }
         }
     }
 }
@@ -117,31 +172,54 @@ impl Service for GenericService {
     ) -> Result<Response<ServiceResponse>, Status> {
         let method_name = request.into_inner().method_name;
         println!("Received request for method: {}", method_name);
-        let service_config = self
+        let method_cnf = self
             .config
-            .get(&self.service_name)
-            .expect("Own service not found in config"); // should be unreachable
-        let method_cnf = service_config
             .methods
             .get(&method_name)
             .expect("Method not found in config");
         match &method_cnf.calls {
             Some(calls) => {
                 for call_row in calls {
-                    let mut futures = Vec::new();
-                    for call in call_row {
-                        let mut call = call.split(".");
-                        let service_to_call = call.next().expect("Failed to get call name");
-                        let method_to_call = call.next().expect("Failed to get method name");
-                        futures.push(self.call_service(service_to_call, method_to_call));
+                    println!("hi");
+                    let mut succeeded = vec![false; call_row.len()];
+                    while succeeded.contains(&false) {
+                        println!("ahhh");
+                        let mut futures = Vec::new();
+                        for (i, call) in call_row.iter().enumerate() {
+                            if succeeded[i] {
+                                continue;
+                            }
+                            let mut call = call.split(".");
+                            let service_to_call = call.next().expect("Failed to get call name");
+                            let method_to_call = call.next().expect("Failed to get method name");
+                            futures.push(self.call_service(service_to_call, method_to_call));
+                        }
+                        let resp = future::join_all(futures).await;
+                        let mut j = 0;
+                        (0..succeeded.len()).for_each(|i| {
+                            if !succeeded[i] {
+                                succeeded[i] = resp[j];
+                                j += 1;
+                            }
+                        });
                     }
-                    future::join_all(futures).await;
                 }
             }
             None => {
                 println!("No calls to make");
             }
         }
+        println!("gonna wait");
+        // wait latency
+        let latency = method_cnf.latency_distribution.simulate();
+        sleep(std::time::Duration::from_millis(latency.round() as u64)).await;
+        let error_rate = method_cnf.error_rate.simulate();
+        if error_rate {
+            println!("error rate triggered");
+            return Err(Status::internal("Internal error"));
+        }
+
+        println!("finished");
         Ok(Response::new(ServiceResponse {}))
     }
 }
