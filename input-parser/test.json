@@ -1,0 +1,53 @@
+{
+  "services": {
+    "ServiceA": {
+      "ip": "127.0.0.1",
+      "port": "8000",
+      "methods": {
+        "ProcessOrder": {
+          "calls": [["ServiceB.ValidatePayment"]],
+          "latency_distribution": {
+            "type": "Normal",
+            "parameters": {
+              "mean": 150,
+              "stdev": 25
+            }
+          },
+          "error_rate": {
+            "type": "percentage",
+            "value": 0.02
+          }
+        }
+      }
+    },
+    "ServiceB": {
+      "ip": "127.0.0.1",
+      "port": "8001",
+      "methods": {
+        "ValidatePayment": {
+          "calls": [],
+          "latency_distribution": {
+            "type": "Normal",
+            "parameters": {
+              "mean": 80,
+              "stdev": 10
+            }
+          },
+          "error_rate": {
+            "type": "percentage",
+            "value": 0.05
+          }
+        }
+      }
+    }
+  },
+  "load": {
+    "entry_points": [
+      {
+        "service": "ServiceA",
+        "method": "ProcessOrder",
+        "requests_per_second": 10
+      }
+    ]
+  }
+}
