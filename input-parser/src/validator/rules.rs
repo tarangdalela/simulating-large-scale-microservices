@@ -231,21 +231,21 @@ fn validate_single_error_rate(
 ) -> Result<()> {
     // Validate based on error type
     match error_rate.error_type.as_str() {
-        "Percentage" => {
+        "percentage" => {
             // Value must be between 0.0 and 100.0 for percentage
             if error_rate.value < 0.0 || error_rate.value > 100.0 {
                 bail!("Error percentage for {}.{} must be between 0.0 and 100.0: {}", 
                       service_name, method_name, error_rate.value);
             }
         },
-        "Probability" => {
+        "probability" => {
             // Value must be between 0.0 and 1.0 for probability
             if error_rate.value < 0.0 || error_rate.value > 1.0 {
                 bail!("Error probability for {}.{} must be between 0.0 and 1.0: {}", 
                       service_name, method_name, error_rate.value);
             }
         },
-        "Fixed" => {
+        "fixed" => {
             // Fixed error count must be a non-negative integer (or compatible float)
             if error_rate.value < 0.0 {
                 bail!("Fixed error count for {}.{} cannot be negative: {}", 
