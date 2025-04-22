@@ -1,10 +1,14 @@
 use futures::future;
 use rand_distr::{Bernoulli, Distribution, Normal};
 use serde::{Deserialize, Serialize};
+use service_stubs::service_client::ServiceClient;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::time::sleep;
+use tonic::transport::Channel;
 use tonic::{transport::Server, Request, Response, Status};
 
 pub mod service_stubs {
@@ -28,8 +32,6 @@ struct MethodConfigFromJSON {
 }
 
 struct ServiceConfig {
-    ip: String,
-    port: String,
     methods: HashMap<String, MethodConfig>,
 }
 
@@ -74,6 +76,7 @@ impl DistributionSimulator<bool> for BernoulliDistribution {
 pub struct GenericService {
     config: ServiceConfig,
     config_json: HashMap<String, ServiceConfigFromJSON>,
+    services: Arc<Mutex<HashMap<String, ServiceClient<Channel>>>>,
 }
 
 impl GenericService {
@@ -90,8 +93,6 @@ impl GenericService {
             .get(&service_name)
             .expect("Own service not found in config");
         let config = ServiceConfig {
-            ip: config_json[&service_name].ip.clone(),
-            port: config_json[&service_name].port.clone(),
             methods: config_json[&service_name]
                 .methods
                 .iter()
@@ -129,6 +130,7 @@ impl GenericService {
         GenericService {
             config,
             config_json,
+            services: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -143,9 +145,22 @@ impl GenericService {
 
         let service_url = format!("http://{}:{}", service_ip, service_port);
         println!("{}", service_url);
-        let mut client = service_stubs::service_client::ServiceClient::connect(service_url)
-            .await
-            .expect("Failed to connect to service");
+        let mut services = self.services.lock().await;
+        let mut client = if let Some(client) = services.get(&service_url) {
+            client.clone()
+        } else {
+            match ServiceClient::connect(service_url.clone()).await {
+                Ok(client) => {
+                    services.insert(service_url.clone(), client.clone());
+                    client
+                }
+                Err(e) => {
+                    eprintln!("Failed to connect to service: {:?}", e);
+                    return false;
+                }
+            }
+        };
+        drop(services);
         let request = tonic::Request::new(ServiceRequest {
             method_name: method_name.to_string(),
         });
