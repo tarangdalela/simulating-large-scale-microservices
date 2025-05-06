@@ -36,9 +36,14 @@ struct ServiceConfig {
 }
 
 struct MethodConfig {
-    calls: Option<Vec<Vec<String>>>,
+    calls: Option<Vec<Vec<Call>>>,
     latency_distribution: Box<dyn DistributionSimulator<f64>>,
     error_rate: Box<dyn DistributionSimulator<bool>>,
+}
+
+struct Call {
+    service_name: String,
+    method_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -100,7 +105,27 @@ impl GenericService {
                     (
                         k.clone(),
                         MethodConfig {
-                            calls: v.calls.clone(),
+                            calls: v.calls.as_ref().map(|calls| {
+                                calls
+                                    .iter()
+                                    .map(|call_row| {
+                                        call_row
+                                            .iter()
+                                            .map(|call| {
+                                                let mut call_parts = call.split(".");
+                                                let service_name =
+                                                    call_parts.next().unwrap().to_string();
+                                                let method_name =
+                                                    call_parts.next().unwrap().to_string();
+                                                Call {
+                                                    service_name,
+                                                    method_name,
+                                                }
+                                            })
+                                            .collect()
+                                    })
+                                    .collect()
+                            }),
                             latency_distribution: match v
                                 .latency_distribution
                                 .distribution_type
@@ -134,33 +159,37 @@ impl GenericService {
         }
     }
 
+    pub async fn init_service_client(
+        &self,
+        service_name: &str,
+    ) -> Result<ServiceClient<Channel>, Box<dyn std::error::Error>> {
+        if self.services.lock().await.contains_key(service_name) {
+            return Ok(self
+                .services
+                .lock()
+                .await
+                .get(service_name)
+                .unwrap()
+                .clone());
+        }
+        let service_ip = self.config_json[service_name].ip.clone();
+        let service_port = self.config_json[service_name].port.clone();
+        let service_url = format!("http://{}:{}", service_ip, service_port);
+        let client = ServiceClient::connect(service_url).await?;
+        self.services
+            .lock()
+            .await
+            .insert(service_name.to_string(), client.clone());
+        Ok(client)
+    }
+
     pub async fn call_service(&self, service_name: &str, method_name: &str) -> bool {
         println!(
             "Calling service: {} with method: {}",
             service_name, method_name
         );
 
-        let service_ip = self.config_json[service_name].ip.clone();
-        let service_port = self.config_json[service_name].port.clone();
-
-        let service_url = format!("http://{}:{}", service_ip, service_port);
-        println!("{}", service_url);
-        let mut services = self.services.lock().await;
-        let mut client = if let Some(client) = services.get(&service_url) {
-            client.clone()
-        } else {
-            match ServiceClient::connect(service_url.clone()).await {
-                Ok(client) => {
-                    services.insert(service_url.clone(), client.clone());
-                    client
-                }
-                Err(e) => {
-                    eprintln!("Failed to connect to service: {:?}", e);
-                    return false;
-                }
-            }
-        };
-        drop(services);
+        let mut client = self.init_service_client(service_name).await.expect("Client connection failed");
         let request = tonic::Request::new(ServiceRequest {
             method_name: method_name.to_string(),
         });
@@ -204,9 +233,8 @@ impl Service for GenericService {
                             if succeeded[i] {
                                 continue;
                             }
-                            let mut call = call.split(".");
-                            let service_to_call = call.next().expect("Failed to get call name");
-                            let method_to_call = call.next().expect("Failed to get method name");
+                            let service_to_call = &call.service_name;
+                            let method_to_call = &call.method_name;
                             futures.push(self.call_service(service_to_call, method_to_call));
                         }
                         let resp = future::join_all(futures).await;
