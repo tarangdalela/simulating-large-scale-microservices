@@ -1,4 +1,5 @@
 use futures::future;
+use prost_types::Timestamp;
 use rand_distr::{Bernoulli, Distribution, Normal};
 use serde::{Deserialize, Serialize};
 use service_stubs::service_client::ServiceClient;
@@ -6,6 +7,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 use tonic::transport::Channel;
@@ -16,7 +18,7 @@ pub mod service_stubs {
 }
 
 use service_stubs::service_server::{Service, ServiceServer};
-use service_stubs::{ServiceRequest, ServiceResponse};
+use service_stubs::{CallData, ServiceRequest, ServiceResponse};
 
 #[derive(Serialize, Deserialize)]
 struct ServiceConfigFromJSON {
@@ -183,13 +185,20 @@ impl GenericService {
         Ok(client)
     }
 
-    pub async fn call_service(&self, service_name: &str, method_name: &str) -> bool {
+    pub async fn call_service(
+        &self,
+        service_name: &str,
+        method_name: &str,
+    ) -> Result<ServiceResponse, String> {
         println!(
             "Calling service: {} with method: {}",
             service_name, method_name
         );
 
-        let mut client = self.init_service_client(service_name).await.expect("Client connection failed");
+        let mut client = self
+            .init_service_client(service_name)
+            .await
+            .expect("Client connection failed");
         let request = tonic::Request::new(ServiceRequest {
             method_name: method_name.to_string(),
         });
@@ -198,11 +207,11 @@ impl GenericService {
         match response {
             Ok(res) => {
                 println!("Response: {:?}", res);
-                true
+                Result::Ok(res.into_inner())
             }
             Err(e) => {
                 eprintln!("Error calling service: {:?}", e);
-                false
+                Result::Err(method_name.to_string())
             }
         }
     }
@@ -221,13 +230,12 @@ impl Service for GenericService {
             .methods
             .get(&method_name)
             .expect("Method not found in config");
+        let mut call_list = Vec::new();
         match &method_cnf.calls {
             Some(calls) => {
                 for call_row in calls {
-                    println!("hi");
                     let mut succeeded = vec![false; call_row.len()];
                     while succeeded.contains(&false) {
-                        println!("ahhh");
                         let mut futures = Vec::new();
                         for (i, call) in call_row.iter().enumerate() {
                             if succeeded[i] {
@@ -241,7 +249,27 @@ impl Service for GenericService {
                         let mut j = 0;
                         (0..succeeded.len()).for_each(|i| {
                             if !succeeded[i] {
-                                succeeded[i] = resp[j];
+                                succeeded[i] = resp[j].is_ok();
+                                if let Ok(r) = resp[j].clone() {
+                                    for c in r.calls {
+                                        call_list.push(c.clone());
+                                    }
+                                }
+                                let now = SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .expect("system time before UNIX EPOCH");
+                                let response_receieved_at = Some(Timestamp {
+                                    seconds: now.as_secs() as i64,
+                                    nanos: now.subsec_nanos() as i32,
+                                });
+                                call_list.push(CallData {
+                                    method_name: match resp[j].clone() {
+                                        Ok(r) => r.method_name,
+                                        Err(method_name) => method_name,
+                                    },
+                                    response_received_at: response_receieved_at,
+                                    was_an_error: resp[j].is_err(),
+                                });
                                 j += 1;
                             }
                         });
@@ -252,18 +280,21 @@ impl Service for GenericService {
                 println!("No calls to make");
             }
         }
-        println!("gonna wait");
+        println!("Simulating Latency");
         // wait latency
         let latency = method_cnf.latency_distribution.simulate();
         sleep(std::time::Duration::from_millis(latency.round() as u64)).await;
         let error_rate = method_cnf.error_rate.simulate();
         if error_rate {
-            println!("error rate triggered");
-            return Err(Status::internal("Internal error"));
+            println!("Simulating Error");
+            return Err(Status::internal("Internal Error"));
         }
 
-        println!("finished");
-        Ok(Response::new(ServiceResponse {}))
+        println!("Did not Error");
+        Ok(Response::new(ServiceResponse {
+            calls: call_list,
+            method_name,
+        }))
     }
 }
 
