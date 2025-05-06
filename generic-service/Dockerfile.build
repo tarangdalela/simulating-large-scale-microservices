@@ -1,0 +1,44 @@
+# Use a recent Rust version for building
+FROM rust:latest AS rust_builder
+
+WORKDIR /app
+
+# Install protobuf-compiler and other essential tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    libprotobuf-dev \
+    build-essential \
+    pkg-config \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy manifest files
+COPY Cargo.toml Cargo.lock ./
+
+# Create dummy source file for initial fetch
+RUN mkdir src && echo 'fn main() {}' > src/main.rs
+
+# Fetch dependencies
+RUN cargo fetch
+
+# Copy the actual source code
+COPY src ./src
+COPY proto ./proto 
+
+# Build the generic service
+RUN cargo build --release
+
+# --- Build stage for the service image ---
+FROM debian:bookworm-slim AS service_builder
+
+# Install necessary runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /app/target/release/generic-service ./generic-service 
+
+# This stage is now ready to be used by Dockerfile.service

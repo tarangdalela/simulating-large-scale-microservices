@@ -1,0 +1,97 @@
+{
+  "container_port": 50053,
+  "methods": {
+    "lookup_resources": {
+      "calls": [
+        [
+          "service_delta.query_database",
+          "service_epsilon.check_cache"
+        ]
+      ],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 35.0,
+          "mean": 150.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.07
+        }
+      }
+    },
+    "verify_credentials": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "mean": 85.0,
+          "stdev": 20.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.15
+        }
+      }
+    },
+    "register_new_resource": {
+      "calls": [
+        [
+          "service_delta.insert_record"
+        ],
+        [
+          "service_epsilon.update_cache"
+        ]
+      ],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "mean": 100.0,
+          "stdev": 20.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.04
+        }
+      }
+    },
+    "get_configuration": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 5.0,
+          "mean": 20.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.0
+        }
+      }
+    },
+    "archive_intermediate_result": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 15.0,
+          "mean": 55.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.02
+        }
+      }
+    }
+  }
+}

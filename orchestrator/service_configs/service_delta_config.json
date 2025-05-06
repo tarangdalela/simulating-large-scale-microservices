@@ -1,0 +1,105 @@
+{
+  "container_port": 50054,
+  "methods": {
+    "check_schema": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 7.0,
+          "mean": 35.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.01
+        }
+      }
+    },
+    "fetch_details": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 50.0,
+          "mean": 220.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.12
+        }
+      }
+    },
+    "perform_action_x": {
+      "calls": [
+        [
+          "service_epsilon.log_action"
+        ]
+      ],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 40.0,
+          "mean": 180.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.09
+        }
+      }
+    },
+    "query_database": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 30.0,
+          "mean": 160.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.08
+        }
+      }
+    },
+    "insert_record": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "stdev": 18.0,
+          "mean": 70.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.05
+        }
+      }
+    },
+    "log_action": {
+      "calls": [],
+      "latency_distribution": {
+        "type": "normal",
+        "parameters": {
+          "mean": 28.0,
+          "stdev": 6.0
+        }
+      },
+      "error_rate": {
+        "type": "bernoulli",
+        "parameters": {
+          "p": 0.008
+        }
+      }
+    }
+  }
+}

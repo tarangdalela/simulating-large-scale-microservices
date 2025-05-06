@@ -1,0 +1,19 @@
+# Use the service_builder stage from Dockerfile.build
+# FROM service_builder AS final
+
+FROM ubuntu:latest
+
+WORKDIR /app
+
+# Declare the build argument for the container port (providing a default value of 8000)
+ARG SERVICE_CONTAINER_PORT=8000 
+
+# Copy the compiled binary from the builder stage
+COPY --from=rust_builder /app/target/release/generic-service /app/generic-service
+
+# Expose the gRPC port using the build argument
+EXPOSE ${SERVICE_CONTAINER_PORT}
+
+# Command to run the service
+# The service code should read the port from the SERVICE_PORT environment variable
+CMD ["./generic-service"]
