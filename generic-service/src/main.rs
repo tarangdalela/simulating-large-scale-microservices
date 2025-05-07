@@ -177,6 +177,7 @@ impl GenericService {
         let service_ip = self.config_json[service_name].ip.clone();
         let service_port = self.config_json[service_name].port.clone();
         let service_url = format!("http://{}:{}", service_ip, service_port);
+        println!("Connecting to service {} at {}", service_name, service_url);
         let client = ServiceClient::connect(service_url).await?;
         self.services
             .lock()
@@ -191,7 +192,7 @@ impl GenericService {
         method_name: &str,
     ) -> Result<ServiceResponse, String> {
         println!(
-            "Calling service: {} with method: {}",
+            "Calling service {} with method {}",
             service_name, method_name
         );
 

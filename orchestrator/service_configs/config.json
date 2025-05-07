@@ -1,10 +1,10 @@
 {
-    "service_alpha": {
-        "ip": "0.0.0.0",
+    "service-alpha": {
+        "ip": "service-alpha",
         "port": "50051",
         "methods": {
             "initiate_workflow": {
-                "calls": [["service_beta.validate_request", "service_gamma.lookup_resources"]],
+                "calls": [["service-beta.validate_request", "service-gamma.lookup_resources"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -20,7 +20,7 @@
                 }
             },
             "process_step_1": {
-                "calls": [["service_delta.perform_action_x"]],
+                "calls": [["service-delta.perform_action_x"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -36,7 +36,7 @@
                 }
             },
             "process_step_2": {
-                "calls": [["service_epsilon.generate_report_data"], ["service_gamma.archive_intermediate_result"]],
+                "calls": [["service-epsilon.generate_report_data"], ["service--amma.archive_intermediate_result"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -52,7 +52,7 @@
                 }
             },
             "aggregate_results": {
-                "calls": [["service_beta.fetch_summary", "service_delta.fetch_details"], ["service_epsilon.finalize_status"]],
+                "calls": [["service-beta.fetch_summary", "service-delta.fetch_details"], ["service-epsilon.finalize_status"]],
                  "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -85,12 +85,12 @@
             }
         }
     },
-    "service_beta": {
-        "ip": "0.0.0.0",
+    "service-beta": {
+        "ip": "service-beta",
         "port": "50052",
         "methods": {
             "validate_request": {
-                "calls": [["service_delta.check_schema"]],
+                "calls": [["service-delta.check_schema"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -122,7 +122,7 @@
                 }
             },
             "update_user_profile": {
-                "calls": [["service_epsilon.log_user_activity"]],
+                "calls": [["service-epsilon.log_user_activity"]],
                  "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -138,7 +138,7 @@
                 }
             },
             "authenticate_user": {
-                 "calls": [["service_gamma.verify_credentials"]],
+                 "calls": [["service-gamma.verify_credentials"]],
                  "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -171,12 +171,12 @@
             }
         }
     },
-    "service_gamma": {
-        "ip": "0.0.0.0",
+    "service-gamma": {
+        "ip": "service-gamma",
         "port": "50053",
         "methods": {
             "lookup_resources": {
-                "calls": [["service_delta.query_database", "service_epsilon.check_cache"]],
+                "calls": [["service-delta.query_database", "service-epsilon.check_cache"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -224,7 +224,7 @@
                 }
             },
             "register_new_resource": {
-                "calls": [["service_delta.insert_record"], ["service_epsilon.update_cache"]],
+                "calls": [["service-delta.insert_record"], ["service-epsilon.update_cache"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -257,12 +257,12 @@
             }
         }
     },
-    "service_delta": {
-        "ip": "0.0.0.0",
+    "service-delta": {
+        "ip": "service-delta",
         "port": "50054",
         "methods": {
             "perform_action_x": {
-                "calls": [["service_epsilon.log_action"]],
+                "calls": [["service-epsilon.log_action"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {
@@ -343,8 +343,8 @@
             }
         }
     },
-    "service_epsilon": {
-        "ip": "0.0.0.0",
+    "service-epsilon": {
+        "ip": "service-epsilon",
         "port": "50055",
         "methods": {
             "generate_report_data": {
@@ -364,7 +364,7 @@
                 }
             },
             "finalize_status": {
-                "calls": [["service_beta.cleanup_session"]],
+                "calls": [["service-beta.cleanup_session"]],
                 "latency_distribution": {
                     "distribution_type": "normal",
                     "parameters": {

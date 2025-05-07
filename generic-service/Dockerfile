@@ -24,21 +24,17 @@ RUN cargo fetch
 # Copy the actual source code
 COPY src ./src
 COPY proto ./proto 
+COPY build.rs .
 
 # Build the generic service
 RUN cargo build --release
 
-# --- Build stage for the service image ---
-FROM debian:bookworm-slim AS service_builder
+# Declare the build argument for the container port (providing a default value of 8000)
+ARG SERVICE_CONTAINER_PORT=8000 
 
-# Install necessary runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Expose the gRPC port using the build argument
+EXPOSE ${SERVICE_CONTAINER_PORT}
 
-WORKDIR /app
-
-# Copy the compiled binary from the builder stage
-COPY --from=builder /app/target/release/generic-service ./generic-service 
-
-# This stage is now ready to be used by Dockerfile.service
+# Command to run the service
+# The service code should read the port from the SERVICE_PORT environment variable
+CMD ["cargo", "run", "--release"]
