@@ -504,11 +504,12 @@ pub fn generate_docker_compose(
 
 fn run_docker_compose() -> Result<()> { 
     info!("Starting Docker Compose.");
-    let output = Command::new("docker-compose")
+    let output = Command::new("docker")
+        .arg("compose")
         .arg("up")
         .arg("-d")
         .output()
-        .with_context(|| "Failed to execute 'docker-compojse up -d'")?;
+        .with_context(|| "Failed to execute 'docker-compose up -d, trying with docker compose'")?;
 
     if output.status.success() {
         info!("Docker Compose started successfully.");
@@ -570,7 +571,7 @@ async fn start_load_generation(load_config: &LoadConfig, ports: &HashMap<String,
         let requests_per_second = entry_point.requests_per_second;
 
         if let Some(&port) = ports.get(service_name) {
-            let address = format!("http://localhost:{}", port);
+            let address = format!("http://0.0.0.0:{}", port);
             info!(
                 "Starting load generation for {}::{} at {} RPS to {}",
                 service_name, method_name, requests_per_second, address

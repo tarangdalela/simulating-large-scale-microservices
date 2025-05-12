@@ -13,7 +13,7 @@ services:
         error_rate:
           distribution_type: bernoulli
           parameters:
-            p: 0.01
+            p: 0.00
       process_step_1:
         calls:
           - ["service_delta.perform_action_x"]
@@ -113,7 +113,7 @@ services:
         error_rate:
           distribution_type: bernoulli
           parameters:
-            p: 0.08
+            p: 0.00
       cleanup_session:
         calls: []
         latency_distribution:
