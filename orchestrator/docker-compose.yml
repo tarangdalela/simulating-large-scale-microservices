@@ -1,23 +1,6 @@
 ---
 version: "3"
 services:
-  service_beta:
-    build:
-      context: "../generic-service"
-      dockerfile: Dockerfile
-      args:
-        SERVICE_CONTAINER_PORT: "50052"
-    container_name: service_beta
-    ports:
-      - "59999:50052"
-    environment:
-      SERVICE_NAME: service_beta
-      SERVICE_PORT: "50052"
-      CONFIG_PATH: /app/config.json
-    volumes:
-      - "./service_configs/config.json:/app/config.json"
-    networks:
-      - microservice_net
   service_gamma:
     build:
       context: "../generic-service"
@@ -26,7 +9,7 @@ services:
         SERVICE_CONTAINER_PORT: "50053"
     container_name: service_gamma
     ports:
-      - "59998:50053"
+      - "59999:50053"
     environment:
       SERVICE_NAME: service_gamma
       SERVICE_PORT: "50053"
@@ -43,27 +26,10 @@ services:
         SERVICE_CONTAINER_PORT: "50051"
     container_name: service_alpha
     ports:
-      - "59997:50051"
+      - "59998:50051"
     environment:
       SERVICE_NAME: service_alpha
       SERVICE_PORT: "50051"
-      CONFIG_PATH: /app/config.json
-    volumes:
-      - "./service_configs/config.json:/app/config.json"
-    networks:
-      - microservice_net
-  service_epsilon:
-    build:
-      context: "../generic-service"
-      dockerfile: Dockerfile
-      args:
-        SERVICE_CONTAINER_PORT: "50055"
-    container_name: service_epsilon
-    ports:
-      - "59996:50055"
-    environment:
-      SERVICE_NAME: service_epsilon
-      SERVICE_PORT: "50055"
       CONFIG_PATH: /app/config.json
     volumes:
       - "./service_configs/config.json:/app/config.json"
@@ -77,10 +43,44 @@ services:
         SERVICE_CONTAINER_PORT: "50054"
     container_name: service_delta
     ports:
-      - "59995:50054"
+      - "59997:50054"
     environment:
       SERVICE_NAME: service_delta
       SERVICE_PORT: "50054"
+      CONFIG_PATH: /app/config.json
+    volumes:
+      - "./service_configs/config.json:/app/config.json"
+    networks:
+      - microservice_net
+  service_beta:
+    build:
+      context: "../generic-service"
+      dockerfile: Dockerfile
+      args:
+        SERVICE_CONTAINER_PORT: "50052"
+    container_name: service_beta
+    ports:
+      - "59996:50052"
+    environment:
+      SERVICE_NAME: service_beta
+      SERVICE_PORT: "50052"
+      CONFIG_PATH: /app/config.json
+    volumes:
+      - "./service_configs/config.json:/app/config.json"
+    networks:
+      - microservice_net
+  service_epsilon:
+    build:
+      context: "../generic-service"
+      dockerfile: Dockerfile
+      args:
+        SERVICE_CONTAINER_PORT: "50055"
+    container_name: service_epsilon
+    ports:
+      - "59995:50055"
+    environment:
+      SERVICE_NAME: service_epsilon
+      SERVICE_PORT: "50055"
       CONFIG_PATH: /app/config.json
     volumes:
       - "./service_configs/config.json:/app/config.json"

@@ -9,7 +9,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 50.0
-            stdev: 10.0
+            stddev: 10.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -21,7 +21,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 75.0
-            stdev: 15.0
+            stddev: 15.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -34,7 +34,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 60.0
-            stdev: 12.0
+            stddev: 12.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -48,7 +48,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 120.0
-            stdev: 30.0
+            stddev: 30.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -59,7 +59,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 10.0
-            stdev: 2.0
+            stddev: 2.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -74,7 +74,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 40.0
-            stdev: 8.0
+            stddev: 8.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -85,7 +85,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 90.0
-            stdev: 20.0
+            stddev: 20.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -97,7 +97,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 65.0
-            stdev: 10.0
+            stddev: 10.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -109,7 +109,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 110.0
-            stdev: 25.0
+            stddev: 25.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -120,7 +120,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 30.0
-            stdev: 5.0
+            stddev: 5.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -135,7 +135,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 150.0
-            stdev: 35.0
+            stddev: 35.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -146,7 +146,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 55.0
-            stdev: 15.0
+            stddev: 15.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -157,7 +157,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 85.0
-            stdev: 20.0
+            stddev: 20.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -170,7 +170,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 100.0
-            stdev: 20.0
+            stddev: 20.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -181,7 +181,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 20.0
-            stdev: 5.0
+            stddev: 5.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -196,7 +196,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 180.0
-            stdev: 40.0
+            stddev: 40.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -207,7 +207,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 35.0
-            stdev: 7.0
+            stddev: 7.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -218,7 +218,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 220.0
-            stdev: 50.0
+            stddev: 50.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -229,7 +229,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 160.0
-            stdev: 30.0
+            stddev: 30.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -240,7 +240,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 70.0
-            stdev: 18.0
+            stddev: 18.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -251,7 +251,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 28.0
-            stdev: 6.0
+            stddev: 6.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -265,7 +265,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 250.0
-            stdev: 60.0
+            stddev: 60.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -277,7 +277,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 45.0
-            stdev: 10.0
+            stddev: 10.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -288,7 +288,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 25.0
-            stdev: 5.0
+            stddev: 5.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -299,7 +299,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 15.0
-            stdev: 3.0
+            stddev: 3.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -310,7 +310,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 30.0
-            stdev: 8.0
+            stddev: 8.0
         error_rate:
           distribution_type: bernoulli
           parameters:
@@ -321,7 +321,7 @@ services:
           distribution_type: normal
           parameters:
             mean: 28.0
-            stdev: 6.0
+            stddev: 6.0
         error_rate:
           distribution_type: bernoulli
           parameters:
