@@ -530,7 +530,8 @@ fn run_docker_compose() -> Result<()> {
 fn stop_docker_compose() -> Result<(), anyhow::Error> { 
    
     info!("Stopping Docker Compose.");
-    let output = Command::new("docker-compose")
+    let output = Command::new("docker")
+        .arg("compose")
         .arg("down")
         .output()
         .with_context(|| "Failed to execute 'docker-compose down'")?;

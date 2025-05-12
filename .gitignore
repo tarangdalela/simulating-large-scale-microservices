@@ -2,3 +2,4 @@ trace-analysis/
 target/
 docker-compose.yml
 service_configs/config.json
+service_configs
