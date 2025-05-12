@@ -6,24 +6,24 @@ services:
         calls:
           - ["service_beta.validate_request", "service_gamma.lookup_resources"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 50.0
             stdev: 10.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.01
       process_step_1:
         calls:
           - ["service_delta.perform_action_x"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 75.0
             stdev: 15.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.05
       process_step_2:
@@ -31,12 +31,12 @@ services:
           - ["service_epsilon.generate_report_data"]
           - ["service_gamma.archive_intermediate_result"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 60.0
             stdev: 12.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.03
       aggregate_results:
@@ -45,23 +45,23 @@ services:
           - ["service_delta.fetch_details"]
           - ["service_epsilon.finalize_status"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 120.0
             stdev: 30.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.02
       health_check:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 10.0
             stdev: 2.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.0
   service_beta:
@@ -71,58 +71,58 @@ services:
         calls:
           - ["service_delta.check_schema"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 40.0
             stdev: 8.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.10
       fetch_summary:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 90.0
             stdev: 20.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.04
       update_user_profile:
         calls:
           - ["service_epsilon.log_user_activity"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 65.0
             stdev: 10.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.06
       authenticate_user:
         calls:
           - ["service_gamma.verify_credentials"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 110.0
             stdev: 25.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.08
       cleanup_session:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 30.0
             stdev: 5.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.01
   service_gamma:
@@ -132,34 +132,34 @@ services:
         calls:
           - ["service_delta.query_database", "service_epsilon.check_cache"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 150.0
             stdev: 35.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.07
       archive_intermediate_result:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 55.0
             stdev: 15.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.02
       verify_credentials:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 85.0
             stdev: 20.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.15
       register_new_resource:
@@ -167,23 +167,23 @@ services:
           - ["service_delta.insert_record"]
           - ["service_epsilon.update_cache"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 100.0
             stdev: 20.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.04
       get_configuration:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 20.0
             stdev: 5.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.0
   service_delta:
@@ -193,67 +193,67 @@ services:
         calls:
           - ["service_epsilon.log_action"]
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 180.0
             stdev: 40.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.09
       check_schema:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 35.0
             stdev: 7.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.01
       fetch_details:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 220.0
             stdev: 50.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.12
       query_database:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 160.0
             stdev: 30.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.08
       insert_record:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 70.0
             stdev: 18.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.05
       log_action: # Added this method as it was present in your JSON
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 28.0
             stdev: 6.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.008
   service_epsilon:
@@ -262,68 +262,68 @@ services:
       generate_report_data:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 250.0
             stdev: 60.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.18
       finalize_status:
         # Removed the call to ["service_beta.cleanup_session"] to break the cycle
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 45.0
             stdev: 10.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.03
       log_user_activity:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 25.0
             stdev: 5.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.005
       check_cache:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 15.0
             stdev: 3.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.01
       update_cache:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 30.0
             stdev: 8.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.02
       log_action:
         calls: []
         latency_distribution:
-          type: normal
+          distribution_type: normal
           parameters:
             mean: 28.0
             stdev: 6.0
         error_rate:
-          type: bernoulli
+          distribution_type: bernoulli
           parameters:
             p: 0.008
 load:

@@ -50,15 +50,15 @@ pub struct MethodConfig {
 
 #[derive(Deserialize, Debug, serde::Serialize, Clone)] // Added serde::Serialize and Clone
 pub struct LatencyDistribution {
-    #[serde(rename = "type")]
+    #[serde(rename = "distribution_type")]
     pub distribution_type: String,
     pub parameters: HashMap<String, f64>, // HashMap derives Clone if K and V derive Clone
 }
 
 #[derive(Deserialize, Debug, serde::Serialize, Clone)] // Added serde::Serialize and Clone
 pub struct ErrorRate {
-    #[serde(rename = "type")] // This maps the YAML key 'type' to the Rust field 'distribution_type'
-    pub distribution_type: String,
+    #[serde(rename = "distribution_type")] // This maps the YAML key 'type' to the Rust field 'distribution_type'
+    pub rate_type: String,
     pub parameters: HashMap<String, f64>, // This maps the YAML key 'parameters' to a HashMap
 }
 
@@ -204,8 +204,8 @@ pub fn generate_docker_compose_old(
 
         let mut build_def = Hash::new();
         build_def.insert(Yaml::String("context".into()), Yaml::String("../generic-service".into()));
-        build_def.insert(Yaml::String("dockerfile".into()), Yaml::String("Dockerfile.service".into()));
-        // Pass the container_port as a build argument to the Dockerfile.service
+        build_def.insert(Yaml::String("dockerfile".into()), Yaml::String("Dockerfile".into()));
+        // Pass the container_port as a build argument to the Dockerfile
         let mut build_args = Hash::new();
         build_args.insert(Yaml::String("SERVICE_CONTAINER_PORT".into()), Yaml::String(service_config.container_port.to_string()));
         build_def.insert(Yaml::String("args".into()), Yaml::Hash(build_args));
@@ -348,30 +348,52 @@ pub fn generate_service_configs(config: &Config) -> Result<()> {
     fs::create_dir_all(&config_dir)
         .with_context(|| format!("Failed to create directory: {:?}", config_dir))?;
 
-    for (service_name, service_config) in &config.services {
-        // Create a stripped-down config just for this service instance
-        let service_specific_config = ServiceConfig {
-            container_port: service_config.container_port, // Although this might not be needed if read from ENV
-            methods: service_config.methods.clone(), // Clone methods
-            // Networks and depends_on are handled by docker-compose
-        };
+   
+     // Define the path for the single config file
+     let mut service_config_path = config_dir.clone();
+     let output_filename = "config.json"; 
+     service_config_path.push(output_filename);
 
-        // Define the path for the service-specific config file
-        let mut service_config_path = config_dir.clone();
-        service_config_path.push(format!("{}_config.json", service_name)); // Using JSON for service configs as an example
-
-        // Serialize the service-specific config to JSON (or YAML, consistent with generic service parser)
-        let config_json = serde_json::to_string_pretty(&service_specific_config)
-            .with_context(|| format!("Failed to serialize config for service: {}", service_name))?;
-
-        // Write the config to the file
-        fs::write(&service_config_path, config_json)
-            .with_context(|| format!("Failed to write config file for service {}: {:?}", service_name, service_config_path))?;
-
-        info!("Generated config file for service {}: {:?}", service_name, service_config_path);
+     // New struct that matches the format expected *inside* the service name key in the output JSON
+    #[derive(serde::Serialize, Clone)] // Only needs Serialize and Clone for generating the output file
+    pub struct GenericServiceServiceConfig {
+        pub ip: String, // Matches "ip" in example JSON
+        pub port: String, // Matches "port" in example JSON (as String)
+        pub methods: HashMap<String, MethodConfig>, // Matches "methods" in example JSON (MethodConfig already has derives)
+        // Add other fields from the example JSON if necessary
     }
 
-    info!("Service-specific configuration file generation complete.");
+
+    // making hashmap to store the configs for each service
+    let mut all_service_configs: HashMap<String, GenericServiceServiceConfig> = HashMap::new();
+
+ 
+    // populating the hashmap
+    for (service_name, service_config) in &config.services {
+        // Create the config object for this service in the desired output format
+        let generic_service_config = GenericServiceServiceConfig {
+            // Map fields from the input ServiceConfig (read from main config)
+            // to the output GenericServiceServiceConfig format
+            ip: service_name.clone(), // Set ip to the service name (as in your example JSON)
+            port: service_config.container_port.to_string(), // Convert input u16 port to String for output
+            methods: service_config.methods.clone(), // Clone methods (requires MethodConfig and its components to be Clone)
+            // Add other fields from the input ServiceConfig if they should be in the output file
+        };
+
+        // Insert the service's config into the map, using the service name as the key
+        all_service_configs.insert(service_name.clone(), generic_service_config);
+    }
+
+    // Serialize the entire map containing all service configs
+    let config_json = serde_json::to_string_pretty(&all_service_configs)
+        .with_context(|| "Failed to serialize all service configurations")?;
+
+    // Write the entire config to the single file
+    fs::write(&service_config_path, config_json)
+        .with_context(|| format!("Failed to write the single config file to {:?}", service_config_path))?;
+
+    info!("Created config file containing all service configurations at {:?}", service_config_path);
+
     Ok(())
 }
 
@@ -391,7 +413,7 @@ pub fn generate_docker_compose(
 
         let mut build_def = Hash::new();
         build_def.insert(Yaml::String("context".into()), Yaml::String("../generic-service".into()));
-        build_def.insert(Yaml::String("dockerfile".into()), Yaml::String("Dockerfile.service".into()));
+        build_def.insert(Yaml::String("dockerfile".into()), Yaml::String("Dockerfile".into()));
         // Pass the container_port as a build argument (still useful for EXPOSE in Dockerfile)
         let mut build_args = Hash::new();
         build_args.insert(Yaml::String("SERVICE_CONTAINER_PORT".into()), Yaml::String(service_config.container_port.to_string()));
@@ -424,8 +446,8 @@ pub fn generate_docker_compose(
 
         // Configure volumes to mount the service-specific config file
         let mut volumes: Vec<Yaml> = Vec::new();
-        // Path on the host: ./service_configs/<service_name>_config.json
-        let host_config_path = format!("./service_configs/{}_config.json", service_name);
+        // Path on the host: ./service_configs/config.json
+        let host_config_path = format!("./service_configs/config.json");
         // Mount point inside the container: /app/config.json (matches CONFIG_PATH)
         let volume_mapping = format!("{}:{}", host_config_path, container_config_path);
         volumes.push(Yaml::String(volume_mapping.into()));
@@ -529,6 +551,18 @@ fn stop_docker_compose() -> Result<(), anyhow::Error> {
 
 async fn start_load_generation(load_config: &LoadConfig, ports: &HashMap<String, u16>) -> Result<(), anyhow::Error> {
     info!("Setting up load generation.");
+
+    /*
+        1. iterating through EntryPoints
+        2. calculating interval
+        3. spawn tasks 
+        4. using tokio::time::interval to time duration
+        5. infinite Loop: Each task enters an infinite loop.
+        6. interval.tick().await: Inside the loop, interval.tick().await waits until the next tick of the interval timer. This ensures that the code proceeds to send the next request only after the specified time has elapsed since the last tick, effectively pacing the requests.
+        7. sending request: a gRPC request is constructed and sent (client.get_data(request).await).
+    
+     */
+
     // this uses proto definition from generic services project
     for entry_point in &load_config.entry_points {
         let service_name = &entry_point.service;
