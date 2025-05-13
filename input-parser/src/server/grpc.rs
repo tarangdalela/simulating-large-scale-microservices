@@ -30,7 +30,7 @@ impl InputParser for InputParserService {
             .map_err(|e| Status::invalid_argument(format!("Validation error: {}", e)))?;
         
         // Generate YAML
-        let yaml_str = yaml::generate_docker_compose_yaml(&config)
+        let yaml_str = yaml::generate_simulator_yaml(&config)
             .map_err(|e| Status::internal(format!("YAML generation error: {}", e)))?;
         
         // If forward flag is set, send to orchestrator

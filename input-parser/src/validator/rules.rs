@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use std::collections::HashSet;
 
-use crate::parser::{EntryPoint, ErrorRate, LatencyDistribution, LoadConfig, SimulatorConfig};
+use crate::parser::{EntryPoint, Distribution, LoadConfig, SimulatorConfig};
 
 /// Validate that the configuration has at least one service
 pub fn validate_has_services(config: &SimulatorConfig) -> Result<()> {
@@ -23,7 +23,7 @@ pub fn validate_service_dependencies(config: &SimulatorConfig) -> Result<()> {
                     let parts: Vec<&str> = call.split('.').collect();
                     if parts.len() != 2 {
                         bail!("Invalid call format in {}.{}: '{}'. Expected 'ServiceName.MethodName'", 
-                              service_name, method_name, call);
+                                service_name, method_name, call);
                     }
                     
                     let called_service = parts[0];
@@ -32,13 +32,13 @@ pub fn validate_service_dependencies(config: &SimulatorConfig) -> Result<()> {
                     // Check if called service exists
                     if !service_names.contains(&called_service.to_string()) {
                         bail!("Service '{}' called by {}.{} does not exist", 
-                              called_service, service_name, method_name);
+                                called_service, service_name, method_name);
                     }
                     
                     // Check if called method exists in that service
                     if !config.services[called_service].methods.contains_key(called_method) {
                         bail!("Method '{}' called on service '{}' does not exist", 
-                              called_method, called_service);
+                                called_method, called_service);
                     }
                 }
             }
@@ -55,7 +55,7 @@ pub fn validate_service_dependencies(config: &SimulatorConfig) -> Result<()> {
 pub fn validate_latency_distributions(config: &SimulatorConfig) -> Result<()> {
     for (service_name, service) in &config.services {
         for (method_name, method) in &service.methods {
-            validate_single_latency_distribution(
+            validate_single_distribution(
                 &method.latency_distribution, 
                 service_name, 
                 method_name
@@ -65,21 +65,21 @@ pub fn validate_latency_distributions(config: &SimulatorConfig) -> Result<()> {
     Ok(())
 }
 
-/// Validate a single latency distribution
-fn validate_single_latency_distribution(
-    distribution: &LatencyDistribution, 
+/// Validate a single distribution
+fn validate_single_distribution(
+    distribution: &Distribution, 
     service_name: &str, 
     method_name: &str
 ) -> Result<()> {
     match distribution.distribution_type.as_str() {
-        "Normal" => {
+        "normal" => {
             // Check required parameters for Normal distribution
             if !distribution.parameters.contains_key("mean") {
                 bail!("Normal distribution for {}.{} missing 'mean' parameter", 
                       service_name, method_name);
             }
-            if !distribution.parameters.contains_key("stdev") {
-                bail!("Normal distribution for {}.{} missing 'stdev' parameter", 
+            if !distribution.parameters.contains_key("stddev") {
+                bail!("Normal distribution for {}.{} missing 'stddev' parameter", 
                       service_name, method_name);
             }
             
@@ -89,13 +89,13 @@ fn validate_single_latency_distribution(
                       service_name, method_name, distribution.parameters["mean"]);
             }
             
-            // Validate stdev is positive
-            if distribution.parameters["stdev"] <= 0.0 {
-                bail!("Normal distribution for {}.{} has non-positive stdev: {}", 
-                      service_name, method_name, distribution.parameters["stdev"]);
+            // Validate stddev is positive
+            if distribution.parameters["stddev"] <= 0.0 {
+                bail!("Normal distribution for {}.{} has non-positive stddev: {}", 
+                      service_name, method_name, distribution.parameters["stddev"]);
             }
         },
-        "Uniform" => {
+        "uniform" => {
             // Check required parameters for Uniform distribution
             if !distribution.parameters.contains_key("min") {
                 bail!("Uniform distribution for {}.{} missing 'min' parameter", 
@@ -119,7 +119,7 @@ fn validate_single_latency_distribution(
                       service_name, method_name, distribution.parameters["min"]);
             }
         },
-        "Constant" => {
+        "constant" => {
             // Check required parameter for Constant distribution
             if !distribution.parameters.contains_key("value") {
                 bail!("Constant distribution for {}.{} missing 'value' parameter", 
@@ -132,7 +132,7 @@ fn validate_single_latency_distribution(
                       service_name, method_name, distribution.parameters["value"]);
             }
         },
-        "Exponential" => {
+        "exponential" => {
             // Check required parameter for Exponential distribution
             if !distribution.parameters.contains_key("rate") {
                 bail!("Exponential distribution for {}.{} missing 'rate' parameter", 
@@ -143,6 +143,12 @@ fn validate_single_latency_distribution(
             if distribution.parameters["rate"] <= 0.0 {
                 bail!("Exponential distribution for {}.{} has non-positive rate: {}", 
                       service_name, method_name, distribution.parameters["rate"]);
+            }
+        },
+        "bernoulli" => {
+            if !distribution.parameters.contains_key("p") {
+                bail!("Exponential distribution for {}.{} missing 'p' parameter",
+                      service_name, method_name)
             }
         },
         _ => {
@@ -192,7 +198,7 @@ fn detect_cycles_dfs(
                 // If this called service is already in our call stack, we have a cycle
                 if stack.contains(&called_service) {
                     bail!("Circular dependency detected: Service '{}' depends on '{}'", 
-                          service_name, called_service);
+                            service_name, called_service);
                 }
                 
                 // If we haven't visited this called service yet, recursively check it
@@ -216,54 +222,10 @@ pub fn validate_error_rates(config: &SimulatorConfig) -> Result<()> {
         for (method_name, method) in &service.methods {
             // Check if error_rate exists
             if let Some(error_rate) = &method.error_rate {
-                validate_single_error_rate(error_rate, service_name, method_name)?;
+                validate_single_distribution(error_rate, service_name, method_name)?;
             }
         }
     }
-    Ok(())
-}
-
-/// Validate a single error rate configuration
-fn validate_single_error_rate(
-    error_rate: &ErrorRate,
-    service_name: &str,
-    method_name: &str
-) -> Result<()> {
-    // Validate based on error type
-    match error_rate.error_type.as_str() {
-        "percentage" => {
-            // Value must be between 0.0 and 100.0 for percentage
-            if error_rate.value < 0.0 || error_rate.value > 100.0 {
-                bail!("Error percentage for {}.{} must be between 0.0 and 100.0: {}", 
-                      service_name, method_name, error_rate.value);
-            }
-        },
-        "probability" => {
-            // Value must be between 0.0 and 1.0 for probability
-            if error_rate.value < 0.0 || error_rate.value > 1.0 {
-                bail!("Error probability for {}.{} must be between 0.0 and 1.0: {}", 
-                      service_name, method_name, error_rate.value);
-            }
-        },
-        "fixed" => {
-            // Fixed error count must be a non-negative integer (or compatible float)
-            if error_rate.value < 0.0 {
-                bail!("Fixed error count for {}.{} cannot be negative: {}", 
-                      service_name, method_name, error_rate.value);
-            }
-            
-            // If the value is intended to be an integer, check that it's a whole number
-            if error_rate.value.fract() != 0.0 {
-                bail!("Fixed error count for {}.{} must be a whole number: {}", 
-                      service_name, method_name, error_rate.value);
-            }
-        },
-        _ => {
-            bail!("Unknown error type for {}.{}: '{}'", 
-                  service_name, method_name, error_rate.error_type);
-        }
-    }
-    
     Ok(())
 }
 

@@ -60,7 +60,7 @@ async fn handle_submit(
             }
             
             // Generate YAML
-            match yaml::generate_docker_compose_yaml(&config) {
+            match yaml::generate_simulator_yaml(&config) {
                 Ok(yaml_str) => {
                     // Submit to orchestrator
                     match grpc::submit_config_to_orchestrator(&orchestrator, yaml_str).await {

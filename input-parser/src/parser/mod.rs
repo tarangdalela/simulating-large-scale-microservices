@@ -1,4 +1,3 @@
-// In src/parser/mod.rs
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -12,30 +11,22 @@ pub struct SimulatorConfig {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceConfig {
-    pub ip: String,
-    pub port: String,
+    pub port: u16,
     pub methods: HashMap<String, MethodConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MethodConfig {
     pub calls: Vec<Vec<String>>,
-    pub latency_distribution: LatencyDistribution,
-    pub error_rate: Option<ErrorRate>,
+    pub latency_distribution: Distribution,
+    pub error_rate: Option<Distribution>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LatencyDistribution {
+pub struct Distribution {
     #[serde(rename = "type")]
     pub distribution_type: String,
     pub parameters: HashMap<String, f64>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ErrorRate {
-    #[serde(rename = "type")]
-    pub error_type: String,
-    pub value: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

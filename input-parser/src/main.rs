@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
         validator::validate_config(&config)?;
         
         // Generate YAML
-        let yaml_str = generator::yaml::generate_docker_compose_yaml(&config)?;
+        let yaml_str = generator::yaml::generate_simulator_yaml(&config)?;
         
         // Output to stdout or send to orchestrator
         if opts.stdout {
