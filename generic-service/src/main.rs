@@ -86,6 +86,20 @@ pub struct GenericService {
     services: Arc<Mutex<HashMap<String, ServiceClient<Channel>>>>,
 }
 
+#[derive(Clone)]
+pub struct ServiceResponseWrapper {
+    res: ServiceResponse,
+    sent_at: Timestamp,
+    received_at: Timestamp,
+}
+
+#[derive(Clone)]
+pub struct ServiceErrorWrapper {
+    method_name: String,
+    sent_at: Timestamp,
+    received_at: Timestamp,
+}
+
 impl GenericService {
     pub async fn new() -> Self {
         let config_path_str =
@@ -190,7 +204,7 @@ impl GenericService {
         &self,
         service_name: &str,
         method_name: &str,
-    ) -> Result<ServiceResponse, String> {
+    ) -> Result<ServiceResponseWrapper, ServiceErrorWrapper> {
         println!(
             "Calling service {} with method {}",
             service_name, method_name
@@ -203,16 +217,38 @@ impl GenericService {
         let request = tonic::Request::new(ServiceRequest {
             method_name: method_name.to_string(),
         });
-
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time before UNIX EPOCH");
+        let sent_at = Timestamp {
+            seconds: now.as_secs() as i64,
+            nanos: now.subsec_nanos() as i32,
+        };
         let response = client.get_data(request).await;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time before UNIX EPOCH");
+        let received_at = Timestamp {
+            seconds: now.as_secs() as i64,
+            nanos: now.subsec_nanos() as i32,
+        };
         match response {
             Ok(res) => {
                 println!("Response: {:?}", res);
-                Result::Ok(res.into_inner())
+                let srw = ServiceResponseWrapper {
+                    res: res.into_inner(),
+                    sent_at,
+                    received_at,
+                };
+                Result::Ok(srw)
             }
             Err(e) => {
                 eprintln!("Error calling service: {:?}", e);
-                Result::Err(method_name.to_string())
+                Result::Err(ServiceErrorWrapper {
+                    method_name: method_name.to_string(),
+                    sent_at,
+                    received_at,
+                })
             }
         }
     }
@@ -231,6 +267,16 @@ impl Service for GenericService {
             .methods
             .get(&method_name)
             .expect("Method not found in config");
+        println!("Simulating Latency");
+        // wait latency
+        let latency = method_cnf.latency_distribution.simulate();
+        sleep(std::time::Duration::from_millis(latency.round() as u64)).await;
+        let error_rate = method_cnf.error_rate.simulate();
+        if error_rate {
+            println!("Simulating Error");
+            return Err(Status::internal("Simulated Error"));
+        }
+        println!("Did not Error");
         let mut call_list = Vec::new();
         match &method_cnf.calls {
             Some(calls) => {
@@ -251,25 +297,23 @@ impl Service for GenericService {
                         (0..succeeded.len()).for_each(|i| {
                             if !succeeded[i] {
                                 succeeded[i] = resp[j].is_ok();
-                                if let Ok(r) = resp[j].clone() {
-                                    for c in r.calls {
-                                        call_list.push(c.clone());
+                                let respj = resp[j].clone();
+                                let (method_name, sent_at, received_at, was_error) = match &respj {
+                                    Ok(r) => {
+                                        for c in &r.res.calls {
+                                            call_list.push(c.clone());
+                                        }
+                                        (r.res.method_name.clone(), r.sent_at, r.received_at, false)
                                     }
-                                }
-                                let now = SystemTime::now()
-                                    .duration_since(UNIX_EPOCH)
-                                    .expect("system time before UNIX EPOCH");
-                                let response_receieved_at = Some(Timestamp {
-                                    seconds: now.as_secs() as i64,
-                                    nanos: now.subsec_nanos() as i32,
-                                });
+                                    Err(r) => {
+                                        (r.method_name.clone(), r.sent_at, r.received_at, true)
+                                    }
+                                };
                                 call_list.push(CallData {
-                                    method_name: match resp[j].clone() {
-                                        Ok(r) => r.method_name,
-                                        Err(method_name) => method_name,
-                                    },
-                                    response_received_at: response_receieved_at,
-                                    was_an_error: resp[j].is_err(),
+                                    method_name,
+                                    request_sent_at: Some(sent_at),
+                                    response_received_at: Some(received_at),
+                                    was_an_error: was_error,
                                 });
                                 j += 1;
                             }
@@ -281,17 +325,6 @@ impl Service for GenericService {
                 println!("No calls to make");
             }
         }
-        println!("Simulating Latency");
-        // wait latency
-        let latency = method_cnf.latency_distribution.simulate();
-        sleep(std::time::Duration::from_millis(latency.round() as u64)).await;
-        let error_rate = method_cnf.error_rate.simulate();
-        if error_rate {
-            println!("Simulating Error");
-            return Err(Status::internal("Internal Error"));
-        }
-
-        println!("Did not Error");
         Ok(Response::new(ServiceResponse {
             calls: call_list,
             method_name,

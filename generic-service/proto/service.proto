@@ -18,6 +18,7 @@ message ServiceResponse {
 
 message CallData {
   string method_name = 1;
+  google.protobuf.Timestamp request_sent_at = 2;
   google.protobuf.Timestamp response_received_at = 3;
   bool was_an_error = 4;
 }
