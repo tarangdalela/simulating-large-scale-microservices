@@ -166,14 +166,13 @@ impl SimulatorOrchestrator for OrchestratorService {
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
-    let addr = "[::1]:50052".parse()?;
+    let addr = "[::1]:50155".parse()?;
     let service = OrchestratorService;
-
+    println!("Orchestrator server running on [::1]:50155");
     tonic::transport::Server::builder()
         .add_service(SimulatorOrchestratorServer::new(service))
         .serve(addr)
         .await?;
-    println!("Orchestrator server running on [::1]:50052");
     Ok(())
 }
 
