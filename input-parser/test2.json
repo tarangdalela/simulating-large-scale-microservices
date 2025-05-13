@@ -1,7 +1,7 @@
 {
   "services": {
     "service1": {
-      "port": 8080,
+      "port": 50051,
       "methods": {
         "method1": {
           "calls": [["service2.method2", "service2.method3"]],
@@ -22,7 +22,7 @@
       }
     },
     "service2": {
-      "port": 8081,
+      "port": 50052,
       "methods": {
         "method2": {
           "calls": [],
