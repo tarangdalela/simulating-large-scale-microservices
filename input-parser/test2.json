@@ -1,10 +1,10 @@
 {
   "services": {
-    "ServiceA": {
+    "service1": {
       "port": 8080,
       "methods": {
         "method1": {
-          "calls": [["ServiceB.method2", "ServiceB.method3"]],
+          "calls": [["service2.method2", "service2.method3"]],
           "latency_distribution": {
             "type": "normal",
             "parameters": {
@@ -15,14 +15,14 @@
           "error_rate": {
             "type": "bernoulli",
             "parameters": {
-              "p": 0.1
+              "p": 0.0
             }
           }
         }
       }
     },
-    "ServiceB": {
-      "port": "8081",
+    "service2": {
+      "port": 8081,
       "methods": {
         "method2": {
           "calls": [],
@@ -35,7 +35,7 @@
           "error_rate": {
             "type": "bernoulli",
             "parameters": {
-              "p": 0.05
+              "p": 0.0
             }
           }
         },
@@ -50,7 +50,7 @@
           "error_rate": {
             "type": "bernoulli",
             "parameters": {
-              "p": 0.1
+              "p": 0.0
             }
           }
         }
@@ -60,7 +60,7 @@
   "load": {
     "entry_points": [
       {
-        "service": "ServiceA",
+        "service": "service1",
         "method": "method1",
         "requests_per_second": 10
       }

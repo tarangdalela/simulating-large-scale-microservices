@@ -25,7 +25,6 @@ struct MethodYaml {
 
 #[derive(Debug, serde::Serialize)]
 struct Distribution {
-    #[serde(rename = "type")]
     distribution_type: String,
     parameters: HashMap<String, f64>,
 }
