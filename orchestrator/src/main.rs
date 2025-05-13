@@ -5,11 +5,14 @@
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use service_stubs::simulator_orchestrator_server::{SimulatorOrchestrator, SimulatorOrchestratorServer};
+use service_stubs::status_response::Status as OtherStatus;
+use service_stubs::{ConfigurationRequest, ConfigurationResponse, StatusRequest, StatusResponse};
 use std::{collections::HashMap, fs, path::PathBuf, process::Command, str::FromStr};
 use tokio::time::{interval, Duration};
 use tracing::{debug, error, info};
 use tonic::transport::{Endpoint, Channel};
-use tonic::{Request, Status};
+use tonic::{Request, Response, Status};
 use yaml_rust::{YamlEmitter, YamlLoader, Yaml};
 use yaml_rust::yaml::Hash;
 
@@ -17,6 +20,7 @@ use yaml_rust::yaml::Hash;
 // Assuming your generated gRPC stubs are in a module named 'service_stubs'
 pub mod service_stubs {
     tonic::include_proto!("service"); 
+    tonic::include_proto!("sim");
 }
 use service_stubs::service_client::ServiceClient;
 
@@ -80,12 +84,11 @@ pub struct EntryPoint {
     pub requests_per_second: u32,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+pub struct OrchestratorService;
 
+pub async fn launch_simulation_from_yaml(yaml_path: &str) -> Result<()> {
     // reading and validating JSON config
-    let config = read_and_validate_config("test_config.yaml")?;
+    let config = read_and_validate_config(yaml_path)?;
 
     // assign ports
     let port_assignments = assign_ports(&config.services)?;
@@ -112,6 +115,65 @@ async fn main() -> Result<()> {
     // collect and report output (TODO)
     info!("Collecting and reporting output...");
 
+    Ok(())
+}
+
+#[tonic::async_trait]
+impl SimulatorOrchestrator for OrchestratorService {
+    async fn submit_configuration(
+        &self,
+        request: Request<ConfigurationRequest>,
+    ) -> Result<Response<ConfigurationResponse>, Status> {
+        let ConfigurationRequest {
+            yaml_config,
+            start_immediately,
+        } = request.into_inner();
+        let path = "submitted_config.yaml";
+        std::fs::write(path, &yaml_config)
+            .map_err(|e| Status::internal(format!("Failed to save config: {}", e)))?;
+
+        if start_immediately {
+            if let Err(e) = launch_simulation_from_yaml(path).await {
+                return Ok(Response::new(ConfigurationResponse {
+                    success: false,
+                    simulation_id: "".into(),
+                    message: format!("Launch failed: {}", e),
+                }));
+            }
+        }
+
+        Ok(Response::new(ConfigurationResponse {
+            success: true,
+            simulation_id: "sim-xyz-123".into(),
+            message: "Simulation launched successfully".into(),
+        }))
+    }
+    async fn check_status(
+        &self,
+        _request: Request<StatusRequest>,
+    ) -> Result<Response<StatusResponse>, Status> {
+        // Basic dummy implementation
+        let response = StatusResponse {
+            status: OtherStatus::Running as i32,
+            message: "Simulation is running".into(),
+            services: vec![],
+        };
+        Ok(Response::new(response))
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+
+    let addr = "[::1]:50052".parse()?;
+    let service = OrchestratorService;
+
+    tonic::transport::Server::builder()
+        .add_service(SimulatorOrchestratorServer::new(service))
+        .serve(addr)
+        .await?;
+    println!("Orchestrator server running on [::1]:50052");
     Ok(())
 }
 
