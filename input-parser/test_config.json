@@ -371,7 +371,7 @@
       }
     },
     "service_epsilon": {
-      "port": 50055,
+      "port": 50059,
       "methods": {
         "generate_report_data": {
           "calls": [],
