@@ -84,7 +84,7 @@ export default function GraphEditor() {
             newNodes.push({
               id,
               type: "service",
-              position: { x: Math.random() * 400, y: Math.random() * 400 },
+              position: { x: Math.random() * 800, y: Math.random() * 600 },
               data: {
                 id,
                 serviceName,
@@ -247,7 +247,7 @@ export default function GraphEditor() {
         className="h-16 border-b-2 flex items-center justify-between px-6"
         style={{ borderColor: "#32006D", backgroundColor: "#32006D" }}
       >
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold" style={{ color: "white" }}>
           Microservice Graph Editor
         </h1>
         <div className="flex gap-4">
