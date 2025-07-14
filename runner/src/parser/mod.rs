@@ -15,14 +15,14 @@ pub struct ServiceConfig {
     pub methods: HashMap<String, MethodConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MethodConfig {
     pub calls: Vec<Vec<String>>,
     pub latency_distribution: Distribution,
     pub error_rate: Option<Distribution>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Distribution {
     #[serde(rename = "type")]
     pub distribution_type: String,

@@ -5,36 +5,7 @@ use tracing::{debug, error, info};
 use yaml_rust::yaml::Hash;
 use yaml_rust::{Yaml, YamlEmitter};
 
-#[derive(Deserialize, Debug)]
-pub struct Config {
-    pub services: HashMap<String, ServiceConfig>,
-    pub load: LoadConfig,
-}
-
-#[derive(Deserialize, Debug, serde::Serialize)] // Added serde::Serialize
-pub struct ServiceConfig {
-    #[serde(rename = "container_port")]
-    pub container_port: u16,
-    #[serde(rename = "methods")]
-    pub methods: HashMap<String, MethodConfig>,
-}
-
-#[derive(Deserialize, Debug, serde::Serialize, Clone)] // Added serde::Serialize and Clone
-pub struct MethodConfig {
-    #[serde(rename = "calls")]
-    pub calls: Vec<Vec<String>>, // Vec<String> and Vec<Vec<String>> derive Clone if String does
-    #[serde(rename = "latency_distribution")]
-    pub latency_distribution: LatencyDistribution, // LatencyDistribution must derive Clone
-    #[serde(rename = "error_rate")]
-    pub error_rate: ErrorRate, // ErrorRate must derive Clone
-}
-
-#[derive(Deserialize, Debug, serde::Serialize, Clone)] // Added serde::Serialize and Clone
-pub struct LatencyDistribution {
-    #[serde(rename = "distribution_type")]
-    pub distribution_type: String,
-    pub parameters: HashMap<String, f64>, // HashMap derives Clone if K and V derive Clone
-}
+use crate::parser::{MethodConfig, ServiceConfig, SimulatorConfig};
 
 #[derive(Deserialize, Debug, serde::Serialize, Clone)] // Added serde::Serialize and Clone
 pub struct ErrorRate {
@@ -42,74 +13,6 @@ pub struct ErrorRate {
     // This maps the YAML key 'type' to the Rust field 'distribution_type'
     pub rate_type: String,
     pub parameters: HashMap<String, f64>, // This maps the YAML key 'parameters' to a HashMap
-}
-
-#[derive(Deserialize, Debug)]
-pub struct LoadConfig {
-    #[serde(rename = "entry_points")]
-    pub entry_points: Vec<EntryPoint>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct EntryPoint {
-    #[serde(rename = "service")]
-    pub service: String,
-    #[serde(rename = "method")]
-    pub method: String,
-    #[serde(rename = "requests_per_second")]
-    pub requests_per_second: u32,
-}
-
-// Implement functions for each step:
-pub fn read_and_validate_config(file_path: &str) -> Result<Config> {
-    info!("Reading configuration from: {}", file_path);
-    let contents = fs::read_to_string(file_path)
-        .with_context(|| format!("Failed to read config file: {}", file_path))?;
-
-    info!("Parsing YAML configuration."); // Updated log message
-    let config: Config = serde_yaml::from_str(&contents) // Use serde_yaml::from_str
-        .with_context(|| "Failed to parse YAML configuration")?; // Updated error context
-
-    info!("Performing basic configuration validation.");
-    if config.services.is_empty() {
-        error!("No services defined in the configuration.");
-        return Err(anyhow::anyhow!("No services defined in the configuration."));
-    }
-
-    if config.load.entry_points.is_empty() {
-        info!("No load entry points defined in the configuration. Simulation will start but might not generate load.");
-    } else {
-        for entry_point in &config.load.entry_points {
-            if !config.services.contains_key(&entry_point.service) {
-                error!(
-                    "Load entry point refers to non-existent service: {}",
-                    entry_point.service
-                );
-                return Err(anyhow::anyhow!(
-                    "Load entry point refers to non-existent service: {}",
-                    entry_point.service
-                ));
-            } else if let Some(service_config) = config.services.get(&entry_point.service) {
-                if !service_config.methods.contains_key(&entry_point.method) {
-                    error!(
-                        "Load entry point refers to non-existent method '{}' in service '{}'.",
-                        entry_point.method, entry_point.service
-                    );
-                    return Err(anyhow::anyhow!(
-                        "Load entry point refers to non-existent method '{}' in service '{}'.",
-                        entry_point.method,
-                        entry_point.service
-                    ));
-                }
-            }
-        }
-    }
-
-    // You can add more validation logic here as needed,
-    // for example, checking the validity of latency distribution types, etc.
-
-    info!("Configuration read and validated successfully.");
-    Ok(config)
 }
 
 pub fn assign_ports(services: &HashMap<String, ServiceConfig>) -> Result<HashMap<String, u16>> {
@@ -132,7 +35,7 @@ pub fn assign_ports(services: &HashMap<String, ServiceConfig>) -> Result<HashMap
 }
 
 // New function to generate individual config files for each service
-pub fn generate_service_configs(config: &Config) -> Result<()> {
+pub fn generate_service_configs(config: &SimulatorConfig) -> Result<()> {
     info!("Generating service-specific configuration files.");
     let config_dir = PathBuf::from("./service_configs"); // Directory to store individual configs
 
@@ -148,10 +51,9 @@ pub fn generate_service_configs(config: &Config) -> Result<()> {
     // New struct that matches the format expected *inside* the service name key in the output JSON
     #[derive(serde::Serialize, Clone)] // Only needs Serialize and Clone for generating the output file
     pub struct GenericServiceServiceConfig {
-        pub ip: String,   // Matches "ip" in example JSON
-        pub port: String, // Matches "port" in example JSON (as String)
+        pub ip: String,                             // Matches "ip" in example JSON
+        pub port: String,                           // Matches "port" in example JSON (as String)
         pub methods: HashMap<String, MethodConfig>, // Matches "methods" in example JSON (MethodConfig already has derives)
-                                                    // Add other fields from the example JSON if necessary
     }
 
     // making hashmap to store the configs for each service
@@ -161,12 +63,9 @@ pub fn generate_service_configs(config: &Config) -> Result<()> {
     for (service_name, service_config) in &config.services {
         // Create the config object for this service in the desired output format
         let generic_service_config = GenericServiceServiceConfig {
-            // Map fields from the input ServiceConfig (read from main config)
-            // to the output GenericServiceServiceConfig format
-            ip: service_name.clone(), // Set ip to the service name (as in your example JSON)
-            port: service_config.container_port.to_string(), // Convert input u16 port to String for output
-            methods: service_config.methods.clone(), // Clone methods (requires MethodConfig and its components to be Clone)
-                                                     // Add other fields from the input ServiceConfig if they should be in the output file
+            ip: service_name.clone(),
+            port: service_config.port.to_string(),
+            methods: service_config.methods.clone(),
         };
 
         // Insert the service's config into the map, using the service name as the key
@@ -193,7 +92,10 @@ pub fn generate_service_configs(config: &Config) -> Result<()> {
     Ok(())
 }
 
-pub fn generate_docker_compose(config: &Config, ports: &HashMap<String, u16>) -> Result<()> {
+pub fn generate_docker_compose(
+    config: &SimulatorConfig,
+    ports: &HashMap<String, u16>,
+) -> Result<()> {
     info!("Generating docker-compose.yml file.");
     let mut doc_hash = Hash::new();
 
@@ -212,11 +114,11 @@ pub fn generate_docker_compose(config: &Config, ports: &HashMap<String, u16>) ->
             Yaml::String("dockerfile".into()),
             Yaml::String("Dockerfile".into()),
         );
-        // Pass the container_port as a build argument (still useful for EXPOSE in Dockerfile)
+        // Pass the port as a build argument (still useful for EXPOSE in Dockerfile)
         let mut build_args = Hash::new();
         build_args.insert(
             Yaml::String("SERVICE_CONTAINER_PORT".into()),
-            Yaml::String(service_config.container_port.to_string()),
+            Yaml::String(service_config.port.to_string()),
         );
         build_def.insert(Yaml::String("args".into()), Yaml::Hash(build_args));
 
@@ -227,7 +129,7 @@ pub fn generate_docker_compose(config: &Config, ports: &HashMap<String, u16>) ->
         );
 
         if let Some(&host_port) = ports.get(service_name) {
-            let ports_mapping = format!("{}:{}", host_port, service_config.container_port);
+            let ports_mapping = format!("{}:{}", host_port, service_config.port);
             service_def.insert(
                 Yaml::String("ports".into()),
                 Yaml::Array(vec![Yaml::String(ports_mapping)]),
@@ -250,7 +152,7 @@ pub fn generate_docker_compose(config: &Config, ports: &HashMap<String, u16>) ->
         // Add the SERVICE_PORT environment variable
         environment.insert(
             Yaml::String("SERVICE_PORT".into()),
-            Yaml::String(service_config.container_port.to_string()),
+            Yaml::String(service_config.port.to_string()),
         );
 
         // Define the path where the config file will be mounted INSIDE the container
@@ -395,10 +297,7 @@ fn stop_docker_compose() -> Result<(), anyhow::Error> {
     }
 }
 
-pub async fn launch_simulation_from_yaml(yaml_path: &str) -> Result<()> {
-    // reading and validating JSON config
-    let config = read_and_validate_config(yaml_path)?;
-
+pub async fn launch_simulation_from_yaml(config: SimulatorConfig) -> Result<()> {
     // assign ports
     let port_assignments = assign_ports(&config.services)?;
     info!("Port assignments: {:?}", port_assignments);

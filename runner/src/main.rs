@@ -23,11 +23,11 @@ async fn run_from_input(opts: &CliOptions) -> Result<()> {
     validator::validate_config(&config)?;
 
     // Generate YAML
-    let yaml_str = generator::yaml::generate_simulator_yaml(&config)?;
-    let path = "submitted_config.yaml";
-    tokio::fs::write(path, &yaml_str).await?;
+    // let yaml_str = generator::yaml::generate_simulator_yaml(&config)?;
+    // let path = "submitted_config.yaml";
+    // tokio::fs::write(path, &yaml_str).await?;
 
-    launch_simulation_from_yaml(&path).await?;
+    launch_simulation_from_yaml(config).await?;
 
     Ok(())
 }

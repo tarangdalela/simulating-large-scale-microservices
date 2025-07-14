@@ -44,33 +44,59 @@ struct EntryPoint {
 pub fn generate_simulator_yaml(config: &SimulatorConfig) -> Result<String> {
     // Transform the config into the expected YAML structure
     let simulator_yaml = SimulatorYaml {
-        services: config.services.iter().map(|(name, service)| {
-            (name.clone(), ServiceYaml {
-                container_port: service.port.clone(),
-                methods: service.methods.iter().map(|(method_name, method)| {
-                    (method_name.clone(), MethodYaml {
-                        calls: method.calls.clone(),
-                        latency_distribution: Distribution {
-                            distribution_type: method.latency_distribution.distribution_type.clone(),
-                            parameters: method.latency_distribution.parameters.clone(),
-                        },
-                        error_rate: method.error_rate.as_ref().map(|er| Distribution {
-                            distribution_type: er.distribution_type.clone(),
-                            parameters: er.parameters.clone(),
-                        }),
-                    })
-                }).collect(),
+        services: config
+            .services
+            .iter()
+            .map(|(name, service)| {
+                (
+                    name.clone(),
+                    ServiceYaml {
+                        container_port: service.port.clone(),
+                        methods: service
+                            .methods
+                            .iter()
+                            .map(|(method_name, method)| {
+                                (
+                                    method_name.clone(),
+                                    MethodYaml {
+                                        calls: method.calls.clone(),
+                                        latency_distribution: Distribution {
+                                            distribution_type: method
+                                                .latency_distribution
+                                                .distribution_type
+                                                .clone(),
+                                            parameters: method
+                                                .latency_distribution
+                                                .parameters
+                                                .clone(),
+                                        },
+                                        error_rate: method.error_rate.as_ref().map(|er| {
+                                            Distribution {
+                                                distribution_type: er.distribution_type.clone(),
+                                                parameters: er.parameters.clone(),
+                                            }
+                                        }),
+                                    },
+                                )
+                            })
+                            .collect(),
+                    },
+                )
             })
-        }).collect(),
+            .collect(),
         load: config.load.as_ref().map(|load| LoadYaml {
-            entry_points: load.entry_points.iter().map(|ep| EntryPoint {
-                service: ep.service.clone(),
-                method: ep.method.clone(),
-                requests_per_second: ep.requests_per_second,
-            }).collect(),
+            entry_points: load
+                .entry_points
+                .iter()
+                .map(|ep| EntryPoint {
+                    service: ep.service.clone(),
+                    method: ep.method.clone(),
+                    requests_per_second: ep.requests_per_second,
+                })
+                .collect(),
         }),
     };
-    
+
     // Serialize to YAML
     let yaml = serde_yaml::to_string(&simulator_yaml)?;
     Ok(yaml)

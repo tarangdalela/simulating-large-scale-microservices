@@ -983,29 +983,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "input-parser"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap 4.5.36",
- "futures",
- "prost",
- "reqwest",
- "serde",
- "serde_json",
- "serde_yaml",
- "structopt",
- "thiserror 2.0.12",
- "tokio",
- "tonic",
- "tonic-build",
- "tracing",
- "tracing-subscriber",
- "warp",
- "yaml-rust",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1572,6 +1549,29 @@ dependencies = [
  "libc",
  "untrusted",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "runner"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap 4.5.36",
+ "futures",
+ "prost",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "structopt",
+ "thiserror 2.0.12",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "tracing",
+ "tracing-subscriber",
+ "warp",
+ "yaml-rust",
 ]
 
 [[package]]
