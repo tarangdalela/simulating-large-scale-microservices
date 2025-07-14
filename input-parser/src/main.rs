@@ -1,5 +1,5 @@
 use anyhow::Result;
-use structopt::StructOpt;
+use client::cli::CliOptions;
 use tokio;
 
 mod client;
@@ -13,13 +13,7 @@ pub mod proto {
     tonic::include_proto!("sim");
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // Parse command line arguments
-    let opts = client::cli::parse_cli_args();
-    
-    // If input file is provided, process it directly
-    if opts.input.exists() {
+async fn run_from_input(opts: &CliOptions) -> Result<()> {
         // Parse JSON file
         let config = parser::json::parse_json_file(&opts.input)?;
         
@@ -37,7 +31,11 @@ async fn main() -> Result<()> {
             let simulation_id = client::grpc::submit_config_to_orchestrator(&opts.orchestrator, yaml_str).await?;
             println!("Configuration submitted successfully. Simulation ID: {}", simulation_id);
         }
-    } else {
+
+    Ok(())
+}
+
+async fn run_as_server(opts: &CliOptions) -> Result<()> {
         // Start servers for receiving input
         let http_port = 8080;
         let grpc_port = 50052;
@@ -63,6 +61,20 @@ async fn main() -> Result<()> {
             async { http_handle.await.unwrap() },
             async { grpc_handle.await.unwrap() }
         )?;
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Parse command line arguments
+    let opts = client::cli::parse_cli_args();
+    
+    // If input file is provided, process it directly
+    if opts.input.exists() {
+        run_from_input(&opts).await?;
+    } else {
+        run_as_server(&opts).await?;
     }
     
     Ok(())
