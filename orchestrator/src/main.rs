@@ -567,10 +567,13 @@ fn run_docker_compose() -> Result<()> {
     info!("Starting Docker Compose.");
     let output = Command::new("docker")
         .arg("compose")
+        .arg("-f")
+        .arg("./docker-compose.yml")
         .arg("up")
         .arg("-d")
         .output()
         .with_context(|| "Failed to execute 'docker-compose up -d, trying with docker compose'")?;
+
 
     if output.status.success() {
         info!("Docker Compose started successfully.");
@@ -593,6 +596,8 @@ fn stop_docker_compose() -> Result<(), anyhow::Error> {
     info!("Stopping Docker Compose.");
     let output = Command::new("docker")
         .arg("compose")
+        .arg("-f")
+        .arg("./docker-compose.yml")
         .arg("down")
         .output()
         .with_context(|| "Failed to execute 'docker-compose down'")?;
